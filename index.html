@@ -6,12 +6,9 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
         .container { max-width: 950px; margin: auto; background: #16213e; padding: 25px; border-radius: 12px; border: 1px solid #0f3460; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        /* Titre NR1 personnalisé */
         .alliance-header { text-align: center; margin-bottom: 20px; }
         .alliance-header h1 { color: #e94560; margin: 0; text-transform: uppercase; letter-spacing: 4px; font-size: 2.5em; }
         .alliance-header span { color: #4ecc71; font-weight: bold; font-size: 0.9em; letter-spacing: 2px; }
-        
         .mode-selector { background: #0f3460; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: center; gap: 20px; border: 1px solid #e94560; }
         .mode-selector label { cursor: pointer; font-weight: bold; color: #4ecc71; }
         .setup { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px; background: #222d45; padding: 20px; border-radius: 8px; flex-wrap: wrap; }
@@ -52,7 +49,7 @@
     </div>
 
     <div class="setup">
-        <div><label>Squads Count</label><input type="number" id="nb_esc" value="5" oninput="saveAll()"></div>
+        <div><label>Squads Count</label><input type="number" id="nb_esc" value="6" oninput="saveAll()"></div>
         
         <div class="mode-fixed"><label>Infantry / Squad</label><input type="number" id="req_inf" value="10000" oninput="saveAll()"></div>
         <div class="mode-fixed"><label>Cavalry / Squad</label><input type="number" id="req_cav" value="15000" oninput="saveAll()"></div>
