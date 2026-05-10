@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NR1 - Squad Planner</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+        .container { max-width: 950px; margin: auto; background: #16213e; padding: 25px; border-radius: 12px; border: 1px solid #0f3460; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        /* Titre NR1 personnalisé */
+        .alliance-header { text-align: center; margin-bottom: 20px; }
+        .alliance-header h1 { color: #e94560; margin: 0; text-transform: uppercase; letter-spacing: 4px; font-size: 2.5em; }
+        .alliance-header span { color: #4ecc71; font-weight: bold; font-size: 0.9em; letter-spacing: 2px; }
+        
+        .mode-selector { background: #0f3460; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: center; gap: 20px; border: 1px solid #e94560; }
+        .mode-selector label { cursor: pointer; font-weight: bold; color: #4ecc71; }
+        .setup { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px; background: #222d45; padding: 20px; border-radius: 8px; flex-wrap: wrap; }
+        .setup div { display: flex; flex-direction: column; align-items: center; min-width: 120px; flex: 1; }
+        label { font-size: 0.85em; margin-bottom: 5px; color: #95adbe; font-weight: bold; }
+        input { background: #1a1a2e; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 4px; width: 90%; text-align: center; font-size: 1em; }
+        input:focus { border-color: #e94560; outline: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #1a1a2e; }
+        th, td { border: 1px solid #0f3460; padding: 8px; text-align: center; }
+        th { background: #0f3460; color: #e94560; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; text-transform: uppercase; transition: 0.3s; }
+        .btn-calc { background: #e94560; color: white; }
+        .btn-clear { background: #444; color: white; flex: 0.3; }
+        .squad-card { background: #1a1a2e; border: 1px solid #0f3460; border-left: 6px solid #e94560; margin-top: 15px; padding: 15px; border-radius: 4px; }
+        .squad-title { color: #e94560; font-weight: bold; font-size: 1.2em; margin-bottom: 10px; border-bottom: 1px solid #0f3460; }
+        .item-line { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #333; }
+        .shortage { color: #ff4d4d; font-weight: bold; }
+        .type-label { font-weight: bold; width: 110px; color: #4ecc71; }
+        .tier-tag { background: #0f3460; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; margin-left: 4px; color: #fff; }
+        .hidden { display: none !important; }
+        .save-status { text-align: center; font-size: 0.8em; color: #4ecc71; margin-bottom: 10px; height: 1em; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="alliance-header">
+        <h1>🛡 NR1</h1>
+        <span>SQUAD DEPLOYMENT PLANNER</span>
+    </div>
+    
+    <div id="save-msg" class="save-status"></div>
+
+    <div class="mode-selector">
+        <label><input type="radio" name="calcMode" id="radio-fixed" value="fixed" checked onclick="toggleMode(); saveAll();"> Fixed Numbers</label>
+        <label><input type="radio" name="calcMode" id="radio-ratio" value="ratio" onclick="toggleMode(); saveAll();"> Ratio Mode (%)</label>
+    </div>
+
+    <div class="setup">
+        <div><label>Squads Count</label><input type="number" id="nb_esc" value="5" oninput="saveAll()"></div>
+        
+        <div class="mode-fixed"><label>Infantry / Squad</label><input type="number" id="req_inf" value="10000" oninput="saveAll()"></div>
+        <div class="mode-fixed"><label>Cavalry / Squad</label><input type="number" id="req_cav" value="15000" oninput="saveAll()"></div>
+        <div class="mode-fixed"><label>Archers / Squad</label><input type="number" id="req_arc" value="40000" oninput="saveAll()"></div>
+
+        <div class="mode-ratio hidden"><label>Total Capacity</label><input type="number" id="total_cap" value="100000" oninput="saveAll()"></div>
+        <div class="mode-ratio hidden"><label>Infantry %</label><input type="number" id="ratio_inf" value="15" oninput="saveAll()"></div>
+        <div class="mode-ratio hidden"><label>Cavalry %</label><input type="number" id="ratio_cav" value="25" oninput="saveAll()"></div>
+        <div class="mode-ratio hidden"><label>Archers %</label><input type="number" id="ratio_arc" value="60" oninput="saveAll()"></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Tier</th>
+                <th>Infantry Stock</th>
+                <th>Cavalry Stock</th>
+                <th>Archers Stock</th>
+            </tr>
+        </thead>
+        <tbody id="stock_body"></tbody>
+    </table>
+
+    <div class="btn-group">
+        <button class="btn btn-calc" onclick="generatePlan()">Generate Deployment Plan</button>
+        <button class="btn btn-clear" onclick="clearData()">Reset NR1 Data</button>
+    </div>
+
+    <div id="results"></div>
+</div>
+
+<script>
+    const tbody = document.getElementById('stock_body');
+    for (let i = 10; i >= 1; i--) {
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>T${i}</strong></td>
+                <td><input type="number" class="st-inf" id="inf-t${i}" data-t="${i}" value="0" oninput="saveAll()"></td>
+                <td><input type="number" class="st-cav" id="cav-t${i}" data-t="${i}" value="0" oninput="saveAll()"></td>
+                <td><input type="number" class="st-arc" id="arc-t${i}" data-t="${i}" value="0" oninput="saveAll()"></td>
+            </tr>
+        `;
+    }
+
+    function saveAll() {
+        const data = {};
+        document.querySelectorAll('input[type="number"]').forEach(input => data[input.id] = input.value);
+        const mode = document.querySelector('input[name="calcMode"]:checked').value;
+        data['calcMode'] = mode;
+        localStorage.setItem('nr1SquadPlanner', JSON.stringify(data));
+        
+        const msg = document.getElementById('save-msg');
+        msg.innerText = "NR1 data auto-saved ✓";
+        setTimeout(() => msg.innerText = "", 2000);
+    }
+
+    function loadData() {
+        const saved = localStorage.getItem('nr1SquadPlanner');
+        if (!saved) return;
+        const data = JSON.parse(saved);
+        if (data['calcMode']) {
+            document.querySelector(`input[name="calcMode"][value="${data['calcMode']}"]`).checked = true;
+            toggleMode();
+        }
+        Object.keys(data).forEach(id => {
+            const el = document.getElementById(id);
+            if (el && id !== 'calcMode') el.value = data[id];
+        });
+    }
+
+    function clearData() {
+        if(confirm("Reset all NR1 squad and stock data?")) {
+            localStorage.removeItem('nr1SquadPlanner');
+            location.reload();
+        }
+    }
+
+    function toggleMode() {
+        const mode = document.querySelector('input[name="calcMode"]:checked').value;
+        document.querySelectorAll('.mode-fixed').forEach(el => el.classList.toggle('hidden', mode !== 'fixed'));
+        document.querySelectorAll('.mode-ratio').forEach(el => el.classList.toggle('hidden', mode !== 'ratio'));
+    }
+
+    function generatePlan() {
+        const mode = document.querySelector('input[name="calcMode"]:checked').value;
+        const nbEsc = parseInt(document.getElementById('nb_esc').value) || 0;
+        let reqInf, reqCav, reqArc;
+
+        if (mode === 'fixed') {
+            reqInf = parseInt(document.getElementById('req_inf').value) || 0;
+            reqCav = parseInt(document.getElementById('req_cav').value) || 0;
+            reqArc = parseInt(document.getElementById('req_arc').value) || 0;
+        } else {
+            const total = parseInt(document.getElementById('total_cap').value) || 0;
+            reqInf = Math.floor(total * (parseInt(document.getElementById('ratio_inf').value) / 100));
+            reqCav = Math.floor(total * (parseInt(document.getElementById('ratio_cav').value) / 100));
+            reqArc = Math.floor(total * (parseInt(document.getElementById('ratio_arc').value) / 100));
+        }
+
+        let stocks = { inf: [], cav: [], arc: [] };
+        for (let i = 10; i >= 1; i--) {
+            stocks.inf.push({ t: i, qte: parseInt(document.getElementById(`inf-t${i}`).value) || 0 });
+            stocks.cav.push({ t: i, qte: parseInt(document.getElementById(`cav-t${i}`).value) || 0 });
+            stocks.arc.push({ t: i, qte: parseInt(document.getElementById(`arc-t${i}`).value) || 0 });
+        }
+
+        let html = "";
+        for (let e = 1; e <= nbEsc; e++) {
+            html += `<div class="squad-card"><div class="squad-title">SQUAD #${e}</div>`;
+            html += calculateRow(stocks.inf, reqInf, "INFANTRY");
+            html += calculateRow(stocks.cav, reqCav, "CAVALRY");
+            html += calculateRow(stocks.arc, reqArc, "ARCHERS");
+            html += `</div>`;
+        }
+        document.getElementById('results').innerHTML = html;
+    }
+
+    function calculateRow(stockArray, amountNeeded, label) {
+        let remaining = amountNeeded;
+        let details = [];
+        for (let item of stockArray) {
+            if (remaining <= 0) break;
+            if (item.qte > 0) {
+                let toTake = Math.min(item.qte, remaining);
+                details.push(`<b>${toTake.toLocaleString()}</b> <span class="tier-tag">T${item.t}</span>`);
+                item.qte -= toTake;
+                remaining -= toTake;
+            }
+        }
+        let resHTML = `<div class="item-line"><span class="type-label">${label}</span><span>${details.length > 0 ? details.join(' + ') : '---'}`;
+        if (remaining > 0) resHTML += ` <span class="shortage">(SHORTAGE: ${remaining.toLocaleString()})</span>`;
+        resHTML += `</span></div>`;
+        return resHTML;
+    }
+
+    window.onload = loadData;
+</script>
+
+</body>
+</html>
