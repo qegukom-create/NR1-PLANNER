@@ -21,14 +21,7 @@
         label { font-size: 0.8em; margin-bottom: 5px; color: #95adbe; font-weight: bold; text-transform: uppercase; }
         
         input { 
-            background: #1a1a2e; 
-            color: #fff; 
-            border: 1px solid #444; 
-            padding: 10px 5px; 
-            border-radius: 4px; 
-            width: 90%; 
-            text-align: center; 
-            font-size: 16px; /* Prevents auto-zoom on iOS */
+            background: #1a1a2e; color: #fff; border: 1px solid #444; padding: 10px 5px; border-radius: 4px; width: 90%; text-align: center; font-size: 16px; 
         }
         input:focus { border-color: #4ecc71; outline: none; background: #1f2a44; }
 
@@ -43,10 +36,15 @@
         .btn-calc:active { transform: translateY(2px); box-shadow: 0 2px 0 #b02a40; }
         .btn-clear { background: #444; color: white; flex: 0.4; }
 
-        .squad-card { background: #1a1a2e; border: 1px solid #0f3460; border-left: 6px solid #e94560; margin-top: 15px; padding: 15px; border-radius: 4px; animation: slideIn 0.3s ease-out; }
+        /* SQUAD CARDS & HERO IMAGES */
+        .squad-card { background: #1a1a2e; border: 1px solid #0f3460; border-left: 6px solid #e94560; margin-top: 15px; padding: 15px; border-radius: 4px; animation: slideIn 0.3s ease-out; position: relative; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .squad-title { color: #e94560; font-weight: bold; font-size: 1.1em; margin-bottom: 10px; border-bottom: 1px solid #0f3460; padding-bottom: 5px; }
+        .squad-title { color: #e94560; font-weight: bold; font-size: 1.1em; margin-bottom: 10px; border-bottom: 1px solid #0f3460; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .hero-img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #4ecc71; object-fit: cover; background: #0f3460; }
+        .hero-info { display: flex; align-items: center; gap: 10px; font-size: 0.8em; color: #4ecc71; }
+
         .item-line { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #333; font-size: 0.9em; }
         .shortage { color: #ff4d4d; font-weight: bold; }
         .type-label { font-weight: bold; width: 100px; color: #4ecc71; }
@@ -72,11 +70,9 @@
 
     <div class="setup">
         <div><label>Squads Count</label><input type="number" inputmode="numeric" id="nb_esc" value="6" oninput="saveAll()"></div>
-        
         <div class="mode-fixed"><label>Inf. / Squad</label><input type="number" inputmode="numeric" id="req_inf" value="10000" oninput="saveAll()"></div>
         <div class="mode-fixed"><label>Cav. / Squad</label><input type="number" inputmode="numeric" id="req_cav" value="15000" oninput="saveAll()"></div>
         <div class="mode-fixed"><label>Arc. / Squad</label><input type="number" inputmode="numeric" id="req_arc" value="40000" oninput="saveAll()"></div>
-
         <div class="mode-ratio hidden"><label>Total Capacity</label><input type="number" inputmode="numeric" id="total_cap" value="100000" oninput="saveAll()"></div>
         <div class="mode-ratio hidden"><label>Inf %</label><input type="number" inputmode="numeric" id="ratio_inf" value="15" oninput="saveAll()"></div>
         <div class="mode-ratio hidden"><label>Cav %</label><input type="number" inputmode="numeric" id="ratio_cav" value="25" oninput="saveAll()"></div>
@@ -104,6 +100,7 @@
 </div>
 
 <script>
+    // Build stock table
     const tbody = document.getElementById('stock_body');
     for (let i = 10; i >= 1; i--) {
         tbody.innerHTML += `
@@ -121,7 +118,6 @@
         document.querySelectorAll('input[type="number"]').forEach(input => data[input.id] = input.value);
         data['calcMode'] = document.querySelector('input[name="calcMode"]:checked').value;
         localStorage.setItem('nr1SquadPlanner', JSON.stringify(data));
-        
         const msg = document.getElementById('save-msg');
         msg.innerText = "NR1 data auto-saved ✓";
         setTimeout(() => msg.innerText = "", 1500);
@@ -131,17 +127,14 @@
         const saved = localStorage.getItem('nr1SquadPlanner');
         if (!saved) return;
         const data = JSON.parse(saved);
-
         if (data['calcMode']) {
             document.querySelector(`input[name="calcMode"][value="${data['calcMode']}"]`).checked = true;
             toggleMode();
         }
-
         Object.keys(data).forEach(id => {
             const el = document.getElementById(id);
             if (el && id !== 'calcMode') el.value = data[id];
         });
-        
         setupErgonomics();
     }
 
@@ -166,7 +159,7 @@
     }
 
     function clearData() {
-        if(confirm("Reset all NR1 squad and stock data?")) {
+        if(confirm("Reset all NR1 data?")) {
             localStorage.removeItem('nr1SquadPlanner');
             location.reload();
         }
@@ -175,8 +168,15 @@
     function generatePlan() {
         const mode = document.querySelector('input[name="calcMode"]:checked').value;
         const nbEsc = parseInt(document.getElementById('nb_esc').value) || 0;
-        let reqInf, reqCav, reqArc;
+        
+        // Heroes Mapping with exact filenames
+        const heroData = {
+            1: { name: "Chenko", img: "chenko.webp" },
+            2: { name: "Amane", img: "amane.webp" },
+            3: { name: "Yeonwoo", img: "yeanwoo.webp" }
+        };
 
+        let reqInf, reqCav, reqArc;
         if (mode === 'fixed') {
             reqInf = parseInt(document.getElementById('req_inf').value) || 0;
             reqCav = parseInt(document.getElementById('req_cav').value) || 0;
@@ -197,14 +197,27 @@
 
         let html = "";
         for (let e = 1; e <= nbEsc; e++) {
-            html += `<div class="squad-card"><div class="squad-title">SQUAD #${e}</div>`;
+            let heroHtml = "";
+            if (heroData[e]) {
+                heroHtml = `
+                    <div class="hero-info">
+                        <span>${heroData[e].name}</span>
+                        <img src="${heroData[e].img}" class="hero-img" alt="${heroData[e].name}" onerror="this.style.display='none'">
+                    </div>`;
+            }
+
+            html += `<div class="squad-card">
+                        <div class="squad-title">
+                            <span>SQUAD #${e}</span>
+                            ${heroHtml}
+                        </div>`;
             html += calculateRow(stocks.inf, reqInf, "INFANTRY");
             html += calculateRow(stocks.cav, reqCav, "CAVALRY");
             html += calculateRow(stocks.arc, reqArc, "ARCHERS");
             html += `</div>`;
         }
         document.getElementById('results').innerHTML = html;
-        window.scrollTo({ top: document.getElementById('results').offsetTop, behavior: 'smooth' });
+        window.scrollTo({ top: document.getElementById('results').offsetTop - 20, behavior: 'smooth' });
     }
 
     function calculateRow(stockArray, amountNeeded, label) {
@@ -225,10 +238,7 @@
         return resHTML;
     }
 
-    window.onload = () => {
-        loadData();
-        setupErgonomics();
-    };
+    window.onload = () => { loadData(); setupErgonomics(); };
 </script>
 
 </body>
